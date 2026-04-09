@@ -28,7 +28,7 @@
         <dependency>
             <groupId>com.netcracker.cloud</groupId>
             <artifactId>blue-green-state-monitor-spring</artifactId>
-            <version>${blue-green-state-monitor.version}</version>
+            <version>${cloud-core.core-blue-green-state-monitor.version}</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>

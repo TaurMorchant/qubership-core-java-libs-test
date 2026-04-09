@@ -21,7 +21,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <testcontainers.version>1.21.4</testcontainers.version>
 
-        <rest-libraries.version>7.1.0</rest-libraries.version>
+        <cloud-core.core-rest-libraries.version>7.2.0-SNAPSHOT</cloud-core.core-rest-libraries.version>
 
         <sonar.coverage.jacoco.xmlReportPaths>
             ${project.basedir}/../blue-green-state-monitor-report-aggregate/target/site/jacoco-aggregate/jacoco.xml

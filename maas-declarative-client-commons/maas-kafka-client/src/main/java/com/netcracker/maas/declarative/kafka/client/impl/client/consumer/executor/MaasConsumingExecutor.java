@@ -73,6 +73,10 @@ public class MaasConsumingExecutor implements Runnable {
     // (partition, version) gets its own slot
     private final ConcurrentHashMap<CommitKey, CommitMarker> readyToCommit = new ConcurrentHashMap<>();
     private final AtomicBoolean shouldBePaused = new AtomicBoolean(false);
+    // BGKafkaConsumerImpl creates the underlying Kafka consumer lazily on the first poll();
+    // pause()/resume() must not be called before that.
+    private final AtomicBoolean consumerInitiated = new AtomicBoolean(false);
+    private final AtomicBoolean kafkaPauseApplied = new AtomicBoolean(false);
     private final AtomicReference<Exception> workerError = new AtomicReference<>();
     // set by the worker on a fatal error; stops it from processing further records so the committed
     // offset can never advance past a failed record. Reset by the consumer thread during recovery.
@@ -195,15 +199,19 @@ public class MaasConsumingExecutor implements Runnable {
             LOG.debug("[consumer] RESUMED — queue size {} <= threshold {}", queueSize, resumeThreshold);
         }
 
-        // apply pause/resume — single place where resume is called (pause is called in emergency and in listener)
-        if (shouldBePaused.get()) {
-            consumer.pause();
-        } else {
-            consumer.resume();
+        // apply pause/resume only after the first poll() initiated the underlying consumer
+        if (consumerInitiated.get()) {
+            if (shouldBePaused.get()) {
+                if (!kafkaPauseApplied.getAndSet(true)) {
+                    consumer.pause();
+                }
+            } else if (kafkaPauseApplied.getAndSet(false)) {
+                consumer.resume();
+            }
         }
 
         // poll — short timeout when paused (heartbeat only, no fetches)
-        Duration pollTimeout = shouldBePaused.get() ? Duration.ofMillis(200) : context.getPollDuration(); 
+        Duration pollTimeout = shouldBePaused.get() ? Duration.ofMillis(200) : context.getPollDuration();
         consumer.poll(pollTimeout).ifPresent(batch -> {
             for (Record<?, ?> record : batch.getBatch()) {
                 if (!workerQueue.offer(record)) {
@@ -211,7 +219,9 @@ public class MaasConsumingExecutor implements Runnable {
                     // Pause BEFORE spinning so poll(0) can only send
                     // heartbeats and can never fetch-and-drop records
                     shouldBePaused.set(true);
-                    consumer.pause();
+                    if (consumerInitiated.get() && !kafkaPauseApplied.getAndSet(true)) {
+                        consumer.pause();
+                    }
                     do {
                         // NOT wrapped in safe() — exception must propagate to trigger normal error recovery
                         LOG.debug("[consumer] queue full ({}/{}), paused; calling poll(0) to stay alive",
@@ -228,6 +238,7 @@ public class MaasConsumingExecutor implements Runnable {
                         record.getConsumerRecord().key());
             }
         });
+        consumerInitiated.set(true);
     }
 
     private void workerLoop() {
@@ -265,7 +276,9 @@ public class MaasConsumingExecutor implements Runnable {
                         errorHandler.handle(processingException, record.getConsumerRecord(), List.of());  //List.of empty because we don't have any records to send -- they are now committed in consumer loop separately
                     } catch (Exception errorHandlerException) {
                         LOG.error("[worker] error handler threw — halting worker until recovery", errorHandlerException);
-                        errorHandlerException.addSuppressed(processingException);
+                        if (errorHandlerException != processingException) {
+                            errorHandlerException.addSuppressed(processingException);
+                        }
                         // halt BEFORE publishing the error so the next loop iteration cannot dequeue and
                         // process another record (which would advance the committed offset past this one)
                         processingHalted.set(true);
@@ -366,10 +379,13 @@ public class MaasConsumingExecutor implements Runnable {
                 newConsumer.setPartitionsAssignedListener(partitions -> {
                     if (shouldBePaused.get()) {
                         newConsumer.pause();
+                        kafkaPauseApplied.set(true);
                         LOG.debug("[consumer] re-applied pause after rebalance on partitions={}", partitions);
                     }
                 });
                 instance.set(newConsumer);
+                consumerInitiated.set(false);
+                kafkaPauseApplied.set(false);
             });
             return instance.get();
         }

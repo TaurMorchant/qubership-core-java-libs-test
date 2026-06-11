@@ -47,6 +47,10 @@ Add the plugin to your `pom.xml`:
         <outputFile>helm-templates/my-service/templates/annotations-httproutes.yaml</outputFile>
         <backendRefVal>{{ .Values.DEPLOYMENT_RESOURCE_NAME }}</backendRefVal>
         <labels>
+          <label>
+            <key>app.kubernetes.io/name</key>
+            <value>{{ .Values.SERVICE_NAME }}</value>
+          </label>
         </labels>
       </configuration>
     </plugin>
@@ -62,7 +66,7 @@ Add the plugin to your `pom.xml`:
 | `servicePort`   | `int`                | `8080`                                   | Backend service port for generated `backendRefs`.                                       |
 | `outputFile`    | `String`             | `gateway-httproutes.yaml`                | Output path relative to project base dir.                                               |
 | `backendRefVal` | `String`             | `{{ .Values.DEPLOYMENT_RESOURCE_NAME }}` | Backend service name in generated routes.                                               |
-| `labels`        | `Map<String,String>` | empty map                                | Custom labels for generated HTTPRoutes metadata. When set, they replace default labels. |
+| `labels`        | `List<Label>`        | empty list                               | Custom labels for generated HTTPRoutes metadata. When set, they replace default labels. Each `<label>` entry has a `<key>` and `<value>` child element, which allows label names containing `/`. |
 
 ## Supported Annotations
 
@@ -267,14 +271,25 @@ default metadata labels:
 These labels are emitted by the renderer for ownership, tracking, and cleanup
 semantics in platform deployments.
 
-You can replace default label set via plugin configuration labels section:
+You can replace the default label set via the plugin configuration `labels` section.
+Each entry uses a `<label>` element with nested `<key>` and `<value>` children,
+which allows label names containing `/` (common in Kubernetes label conventions):
 
 ```xml
 <configuration>
   <labels>
-    <team>platform</team>
-    <owner>control-plane</owner>
-    <app.kubernetes.io/managed-by>custom-manager</app.kubernetes.io/managed-by>
+    <label>
+      <key>team</key>
+      <value>platform</value>
+    </label>
+    <label>
+      <key>owner</key>
+      <value>control-plane</value>
+    </label>
+    <label>
+      <key>app.kubernetes.io/managed-by</key>
+      <value>custom-manager</value>
+    </label>
   </labels>
 </configuration>
 ```

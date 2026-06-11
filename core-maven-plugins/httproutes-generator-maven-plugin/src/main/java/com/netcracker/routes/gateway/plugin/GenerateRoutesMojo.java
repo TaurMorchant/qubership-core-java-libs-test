@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Mojo(
         name = "generate-routes",
@@ -39,13 +40,22 @@ public class GenerateRoutesMojo extends AbstractMojo {
     private String backendRefVal;
 
     @Parameter
-    private Map<String, String> labels = Collections.emptyMap();
+    private List<Label> labels = Collections.emptyList();
 
     @Override
     public void execute() throws MojoExecutionException {
         RouteScanner scanner = new RouteScanner(packages, getLog());
         Set<HttpRoute> allRoutes = scanner.collectRoutes(reactorProjects);
         writeRoutesFile(allRoutes);
+    }
+
+    private Map<String, String> labelsAsMap() {
+        if (labels == null || labels.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return labels.stream()
+                .filter(l -> l.getKey() != null)
+                .collect(Collectors.toMap(Label::getKey, l -> l.getValue() != null ? l.getValue() : ""));
     }
 
     private void writeRoutesFile(Set<HttpRoute> routes) throws MojoExecutionException {
@@ -55,7 +65,7 @@ public class GenerateRoutesMojo extends AbstractMojo {
                     .resolve(outputFile);
 
 
-            String yaml = new HttpRouteRenderer(backendRefVal, labels).generateHttpRoutesYaml(servicePort, routes);
+            String yaml = new HttpRouteRenderer(backendRefVal, labelsAsMap()).generateHttpRoutesYaml(servicePort, routes);
             Files.createDirectories(file.getParent());
             Files.writeString(file, prependYamlHeader(wrapWithEnabler(yaml)));
             getLog().info(String.format("Generated gateway routes CRs at %s", outputFile));
@@ -78,5 +88,35 @@ public class GenerateRoutesMojo extends AbstractMojo {
 
     private String wrapWithEnabler(String yamlContent) {
         return "{{- if eq .Values.SERVICE_MESH_TYPE \"Istio\" }}\n" + yamlContent + "{{- end }}\n";
+    }
+
+    public static class Label {
+
+        private String key;
+        private String value;
+
+        public Label() {
+        }
+
+        public Label(String key, String value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public void setValue(String value) {
+            this.value = value;
+        }
     }
 }

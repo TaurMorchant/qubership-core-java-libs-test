@@ -7,6 +7,10 @@
     <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
     <licenses>
         <license>
             <name>Apache-2.0</name>

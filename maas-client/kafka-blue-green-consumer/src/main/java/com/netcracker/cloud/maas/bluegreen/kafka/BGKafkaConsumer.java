@@ -20,7 +20,8 @@ public interface BGKafkaConsumer<K, V> extends AutoCloseable {
 
     Collection<TopicPartition> assignment();
 
-    void setPartitionsAssignedListener(PartitionsAssignedListener listener);
+    default void setPartitionsAssignedListener(PartitionsAssignedListener listener) {
+    }
 
     void close();
 }

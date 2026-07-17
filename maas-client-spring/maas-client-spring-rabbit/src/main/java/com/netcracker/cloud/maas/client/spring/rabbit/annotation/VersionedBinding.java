@@ -10,3 +10,5 @@ public class VersionedBinding {
     public String routingKey;
     public Map<String, Object> arguments;
 }
+
+// GIB incremental-deploy E2E: trivial touch to trigger module rebuild

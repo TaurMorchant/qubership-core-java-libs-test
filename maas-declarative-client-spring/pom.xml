@@ -194,7 +194,7 @@ because spring-boot-based microservices are maven-inherited from spring-boot-par
         </repository>
         <repository>
             <id>github</id>
-            <url>https://maven.pkg.github.com/netcracker/*</url>
+            <url>https://maven.pkg.github.com/TaurMorchant/*</url>
             <snapshots />
         </repository>
     </repositories>

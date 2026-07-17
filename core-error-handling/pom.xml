@@ -110,7 +110,7 @@
         </repository>
         <repository>
             <id>github</id>
-            <url>https://maven.pkg.github.com/netcracker/*</url>
+            <url>https://maven.pkg.github.com/TaurMorchant/*</url>
             <snapshots />
         </repository>
     </repositories>

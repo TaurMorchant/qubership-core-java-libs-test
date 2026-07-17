@@ -59,7 +59,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/Netcracker/qubership-core-java-libs</url>
+            <url>https://maven.pkg.github.com/TaurMorchant/qubership-core-java-libs-test/</url>
         </repository>
     </distributionManagement>
 </project>

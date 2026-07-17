@@ -28,6 +28,7 @@ on:
 
 permissions:
   packages: write
+  contents: read
 
 jobs:
   maven-deploy:

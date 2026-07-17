@@ -209,6 +209,33 @@ git status --short
 
 Expected: clean working tree (no leftover POC edits). No commit for this task.
 
+### Method correction & results (executed 2026-07-17)
+
+**Correction:** Task 1 committed a change to the **root** `pom.xml`. Comparing the
+branch to `main` (`-Dgib.referenceBranch=refs/heads/main`) therefore sees that
+committed root-pom change and cascades to the whole graph — useless for the POC.
+The correct local method is `-Dgib.disableBranchComparison=true`, which considers
+only uncommitted/untracked working-tree changes (the deliberate POC edit). Commands
+above should use `-Dgib.disableBranchComparison=true` instead of the reference
+branch. (Task 3's push-to-`main` path is unaffected: the root-pom change is committed
+on `main`, so it shows in neither `before` nor `after`.)
+
+Also note: GIB treats **untracked** files as changes by default. Leftover build
+output (`.../target/`) that is not gitignored makes the no-op run detect 1 change;
+remove such untracked output before the control run.
+
+**Results (full reactor baseline = 202 modules):**
+
+| Changed module | Graph level | Reactor size |
+|----------------|-------------|--------------|
+| `maas-client-spring-rabbit` | high | 2–3 |
+| `dbaas-client-bom-parent` | BOM | 2 |
+| `tls-utils` (`core-utils/tls`) | low | 68 |
+| none (clean tree) | — | 0 (root `validate` only) |
+
+Ordering `high ≈ BOM ≪ low ≪ baseline` confirms narrowing tracks the dependency
+graph. POC passed.
+
 ---
 
 ## Task 3: Experimental incremental-deploy workflow on push to main

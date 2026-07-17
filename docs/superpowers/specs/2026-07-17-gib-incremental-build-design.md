@@ -40,7 +40,8 @@ Register GIB as a Maven core extension:
   <extension>
     <groupId>io.github.gitflow-incremental-builder</groupId>
     <artifactId>gitflow-incremental-builder</artifactId>
-    <version>4.5.x</version> <!-- pin to the current release at implementation time -->
+    <version>4.6.0</version>
+    <classLoadingStrategy>plugin</classLoadingStrategy>
   </extension>
 </extensions>
 ```
@@ -49,17 +50,19 @@ Register GIB as a Maven core extension:
 Add to the root `pom.xml` `<properties>`:
 
 ```xml
-<gib.enabled>false</gib.enabled>
+<gib.disable>true</gib.disable>
 ```
 
-A system property `-Dgib.enabled=true` (CLI/CI) overrides the pom property.
+The GIB disable property is `gib.disable` (default `false`). A system property
+`-Dgib.disable=false` (CLI/CI) overrides the pom property.
 Result: developers' local `mvn ...` invocations remain normal **full** builds;
 incremental mode is opt-in and used only by the local POC and CI.
 
 ### Default GIB properties (root `pom.xml` `<properties>`)
-- `gib.buildDownstream=true` — rebuild modules depending on changed ones
-  (correctness for deploy).
-- `gib.buildUpstream=false` — do not walk up the dependency graph.
+- `gib.buildDownstream=always` — rebuild modules depending on changed ones
+  (correctness for deploy; `always` is also the GIB default).
+- `gib.buildUpstream=never` — do not walk up the dependency graph
+  (GIB default is `derived`).
 - `gib.compareToMergeBase` / `gib.referenceBranch` — **not** fixed in the pom;
   set per-context in CI (for `main`: `compareToMergeBase=false`,
   `referenceBranch=<before-SHA>`).
@@ -74,7 +77,7 @@ change is **not** committed.
 2. Make a trivial change in one leaf module (e.g. `core-utils`).
 3. Run incrementally against `main`:
    ```
-   mvn -Dgib.enabled=true -Dgib.referenceBranch=refs/heads/main -Dgib.compareToMergeBase=true verify
+   mvn -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main -Dgib.compareToMergeBase=true verify
    ```
 4. **Success criterion:** the reactor contains only `core-utils` + its downstream
    modules, not all 26. Capture the module list from the GIB log
@@ -99,7 +102,7 @@ Computes the `maven-command` string and exposes it as an output.
 - Otherwise → emit an incremental deploy command:
   ```
   deploy -T 1C -DskipTests
-    -Dgib.enabled=true
+    -Dgib.disable=false
     -Dgib.referenceBranch=${{ github.event.before }}
     -Dgib.compareToMergeBase=false
     -Dgib.baseBranch=HEAD
@@ -125,5 +128,4 @@ with:
   `core-utils` rebuilds & redeploys `core-utils` + its downstream (SNAPSHOT),
   while unrelated modules are **not** redeployed. This is the intended saving but
   should be kept in mind when comparing against the full `maven-deploy.yml`.
-- GIB version `4.5.x` is a placeholder — pin to the actual current release during
-  implementation.
+- GIB version pinned to `4.6.0` (current release as of 2026-07-17).

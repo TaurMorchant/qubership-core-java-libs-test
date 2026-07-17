@@ -12,3 +12,5 @@ public class VersionedBinding {
 }
 
 // GIB incremental-deploy E2E: trivial touch to trigger module rebuild
+
+// GIB E2E #2: single-module change to verify minimal reactor after repo fix

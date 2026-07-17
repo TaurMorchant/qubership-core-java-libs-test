@@ -101,60 +101,107 @@ git commit -m "feat: add gitflow-incremental-builder extension (disabled by defa
 
 ## Task 2: Local POC — prove module narrowing (exploratory, no commit)
 
-**Files:** none committed. This task validates behavior only; the throwaway change is reverted.
+**Files:** none committed. This task validates behavior only; each throwaway change is reverted.
 
 **Interfaces:**
 - Consumes: the extension + defaults from Task 1.
-- Produces: a captured GIB reactor list proving the build narrows to a changed leaf module + its downstream dependents.
+- Produces: a captured comparison table showing that changing a **high-level**
+  module yields a tiny reactor, while a **low-level** module cascades — proving
+  GIB narrows correctly across the dependency spectrum.
+
+> **Note on module choice:** the real reactor is large (~250 Maven projects across
+> the 26 top-level aggregators). `core-utils` sits near the bottom of the graph, so
+> almost everything depends on it transitively — a poor demo of narrowing. Pick
+> **high-level consumer** modules (few/no downstream dependents) as the primary
+> examples, and try several to observe the spectrum.
 
 - [ ] **Step 1: Establish a full baseline**
 
-Run a full build once so all modules are installed locally (avoids missing-artifact noise during the narrowed build):
+Run a full build once so all artifacts are installed locally (avoids
+missing-artifact noise during narrowed builds) and record the full reactor size:
 
 ```
-mvn -B -ntp -Dgib.disable=true install -DskipTests -T 1C 2>&1 | tail -5
+mvn -B -ntp -Dgib.disable=true install -DskipTests -T 1C 2>&1 | tee /tmp/gib-baseline.log | tail -5
+grep -c "Building " /tmp/gib-baseline.log   # approx full reactor module count
 ```
 
-Expected: `BUILD SUCCESS`, `Reactor Summary` listing all 26 modules.
+Expected: `BUILD SUCCESS`; the reactor lists ~250 modules.
 
-- [ ] **Step 2: Make a trivial uncommitted change in one leaf module**
+- [ ] **Step 2: POC-A — change a HIGH-LEVEL module (expect tiny reactor)**
 
-Append a blank line (or a trivial comment) to a source file under `core-utils`, e.g.:
-
-```
-echo "" >> core-utils/pom.xml
-```
-
-Do NOT commit. GIB detects uncommitted changes by default (`gib.uncommitted=true`).
-
-- [ ] **Step 3: Run an incremental build and capture the selected modules**
+Pick a top-of-graph consumer such as `maas-client-spring/maas-client-spring-rabbit`.
+Make a trivial uncommitted change (GIB detects uncommitted changes by default):
 
 ```
-mvn -B -ntp -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main verify -DskipTests 2>&1 | tee /tmp/gib-poc.log | grep -iE "Selected .* project|Building |Reactor" | head -40
+echo "" >> maas-client-spring/maas-client-spring-rabbit/pom.xml
+mvn -B -ntp -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main verify -DskipTests 2>&1 | tee /tmp/gib-A.log | grep -iE "gitflow-incremental-builder|Building |Reactor Summary" | head -40
+git checkout -- maas-client-spring/maas-client-spring-rabbit/pom.xml
 ```
 
-- [ ] **Step 4: Verify the reactor is a narrowed subset**
+Expected (success criterion): the reactor contains only `maas-client-spring-rabbit`
+plus a handful (or zero) downstream modules — far fewer than the ~250 baseline.
+Record the count from `grep -c "Building " /tmp/gib-A.log`.
 
-Inspect the reactor summary:
+- [ ] **Step 3: POC-B — change a DIFFERENT high/mid-level module**
 
-```
-sed -n '/Reactor Summary/,/BUILD/p' /tmp/gib-poc.log
-```
-
-Expected (success criterion): the reactor contains **`core-utils` plus only its downstream dependents**, NOT all 26 modules. Record the exact module list. If all 26 appear, GIB did not narrow — stop and debug (check `gib.disable` override, that `core-utils` was actually the changed module, and that `buildUpstream=never`).
-
-- [ ] **Step 5: Control run — no changes selects nothing**
-
-Revert the change, then run incrementally again:
+Repeat with another module to confirm it is not a fluke, e.g. `dbaas-client` or
+`maas-declarative-client-spring`:
 
 ```
-git checkout -- core-utils/pom.xml
+MOD=dbaas-client
+POM=$(find $MOD -maxdepth 2 -name pom.xml -not -path '*/target/*' | head -1)
+echo "" >> "$POM"
+mvn -B -ntp -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main verify -DskipTests 2>&1 | tee /tmp/gib-B.log | grep -iE "Building |Reactor Summary" | head -40
+git checkout -- "$POM"
+grep -c "Building " /tmp/gib-B.log
+```
+
+Expected: again a narrowed subset; a mid-level module may pull in more downstream
+than POC-A but still far fewer than the full reactor.
+
+- [ ] **Step 4: POC-C (contrast) — change a LOW-LEVEL module**
+
+Change `core-utils` to show the worst case (wide cascade), confirming GIB reacts to
+graph position rather than narrowing blindly:
+
+```
+POM=$(find core-utils -maxdepth 2 -name pom.xml -not -path '*/target/*' | head -1)
+echo "" >> "$POM"
+mvn -B -ntp -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main verify -DskipTests 2>&1 | tee /tmp/gib-C.log | grep -c "Building "
+git checkout -- "$POM"
+```
+
+Expected: a much larger reactor than POC-A/B (core-utils is depended on widely).
+This contrast is the proof that narrowing tracks the dependency graph.
+
+- [ ] **Step 5: Record the comparison**
+
+Summarize the three runs, e.g.:
+
+```
+echo "baseline: $(grep -c 'Building ' /tmp/gib-baseline.log)"
+echo "POC-A maas-client-spring-rabbit: $(grep -c 'Building ' /tmp/gib-A.log)"
+echo "POC-B dbaas-client: $(grep -c 'Building ' /tmp/gib-B.log)"
+echo "POC-C core-utils: $(grep -c 'Building ' /tmp/gib-C.log)"
+```
+
+Expected ordering: `POC-A` ≤ `POC-B` ≪ `POC-C` < `baseline`. If a high-level module
+builds ~everything, stop and debug (check the `-Dgib.disable=false` override, that
+the edited pom is really the intended module, and `buildUpstream=never`).
+
+- [ ] **Step 6: Control run — no changes selects nothing**
+
+With a clean tree, run incrementally:
+
+```
+git status --short   # must be clean
 mvn -B -ntp -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main verify -DskipTests 2>&1 | grep -iE "No changed artifacts|Building |validate" | head
 ```
 
-Expected: GIB reports no changed artifacts and runs only `validate` on the root (no submodule builds). This confirms the no-op path.
+Expected: GIB reports no changed artifacts and runs only `validate` on the root
+(no submodule builds). This confirms the no-op path.
 
-- [ ] **Step 6: Clean up**
+- [ ] **Step 7: Clean up**
 
 ```
 git status --short

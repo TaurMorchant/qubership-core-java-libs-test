@@ -72,17 +72,24 @@ incremental mode is opt-in and used only by the local POC and CI.
 Goal: confirm GIB actually limits the module set. This is exploratory; the throwaway
 change is **not** committed.
 
+The real reactor is large (~250 Maven projects across the 26 top-level aggregators).
+`core-utils` sits near the bottom of the graph — almost everything depends on it
+transitively, so it is a poor demo of narrowing. Use **high-level consumer** modules
+(few/no downstream dependents) as the primary examples and try several to see the
+spectrum.
+
 1. Install the extension + defaults (Component 1). Run a full baseline once:
-   `mvn -Dgib.enabled=false install -DskipTests`.
-2. Make a trivial change in one leaf module (e.g. `core-utils`).
+   `mvn -Dgib.disable=true install -DskipTests`.
+2. Change a **high-level** module (e.g. `maas-client-spring/maas-client-spring-rabbit`).
 3. Run incrementally against `main`:
    ```
-   mvn -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main -Dgib.compareToMergeBase=true verify
+   mvn -Dgib.disable=false -Dgib.referenceBranch=refs/heads/main verify -DskipTests
    ```
-4. **Success criterion:** the reactor contains only `core-utils` + its downstream
-   modules, not all 26. Capture the module list from the GIB log
-   (`Selected X of Y modules`).
-5. Control run with no changes → GIB selects nothing (empty / no-op build).
+4. **Success criterion:** the reactor contains only that module + a small set of
+   downstream dependents — far fewer than the ~250 baseline.
+5. Repeat for a couple more modules (e.g. `dbaas-client`, and `core-utils` as the
+   low-level contrast) to confirm narrowing tracks the dependency graph.
+6. Control run with no changes → GIB selects nothing (root `validate` only, no-op).
 
 ## Component 3 — CI workflow on push to `main`
 

@@ -1,0 +1,156 @@
+# Fork trial: Maven bulk release of the core-libs monorepo (NO DEPLOY)
+#
+# Adapted from Netcracker/qubership-core-infra maven-bulk-release-core-libs-monorepo.yml for this
+# personal fork. It downloads a prebuilt maven-bulk-release CLI (which carries
+# --switchInterModuleDepsToSnapshot) and runs a full release from main against THIS fork.
+#
+# Artifacts are NOT published (--mavenDeployArtifacts=false): the run exercises release:prepare,
+# the SNAPSHOT inter-module pass and the push of tags/commits to the fork, without deploying.
+#
+# Trigger: manual (workflow_dispatch).
+
+name: "Bulk release fork trial (no deploy)"
+run-name: "Bulk release fork trial [${{ inputs.branch }}] dry-run:${{ inputs.dryRun }} by @${{ github.actor }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        type: string
+        description: "branch to release"
+        default: "main"
+      cliJarUrl:
+        type: string
+        description: "URL of the maven-bulk-release-cli jar-with-dependencies"
+        default: "https://maven.pkg.github.com/netcracker/qubership-core-bulk-release/org/qubership/cloud/maven-bulk-release-cli/1.8.2-SNAPSHOT/maven-bulk-release-cli-1.8.2-20260717.073910-24-jar-with-dependencies.jar"
+      skipTest:
+        description: "skip tests during release:prepare"
+        type: boolean
+        default: true
+      dryRun:
+        description: "dry run (SNAPSHOT pass does NOT run in dry run)"
+        type: boolean
+        default: false
+      logsToConsole:
+        description: "log to console"
+        type: boolean
+        default: false
+
+concurrency:
+  group: "fork-bulk-release-${{ inputs.branch }}"
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      MAVEN_USER: "x-access-token"
+      MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: "Set up java"
+        uses: actions/setup-java@v4
+        with:
+          java-version: |
+            17
+            21
+          architecture: 'x64'
+          distribution: 'temurin'
+          server-id: github
+          server-username: MAVEN_USER
+          server-password: MAVEN_TOKEN
+
+      - name: "Cache Maven dependencies"
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: "Run bulk release (no deploy)"
+        id: run-cli
+        shell: bash
+        env:
+          BRANCH: ${{ inputs.branch }}
+          CLI_JAR_URL: ${{ inputs.cliJarUrl }}
+          SKIP_TEST: ${{ inputs.skipTest }}
+          DRY_RUN: ${{ inputs.dryRun }}
+          LOG_TO_CONSOLE: ${{ inputs.logsToConsole }}
+        run: |
+          cli_jar="maven-bulk-release-cli.jar"
+          curl -fL -o "${cli_jar}" -H "Authorization: Bearer ${MAVEN_TOKEN}" "${CLI_JAR_URL}"
+          echo "downloaded CLI jar: ${cli_jar}"
+
+          options=""
+          if [ "${SKIP_TEST}" = "true" ]; then
+            options="${options} --skipTests"
+          fi
+          if [ "${DRY_RUN}" = "true" ]; then
+            options="${options} --dryRun"
+          fi
+          if [ "${LOG_TO_CONSOLE}" = "true" ]; then
+            options="${options} --logsToConsole"
+          fi
+
+          args="--baseDir=/tmp"
+          args="${args} --gitURL=https://github.com"
+          args="${args} --gitUsername=actions"
+          args="${args} --gitEmail=actions@github.com"
+          args="${args} --gitPassword=${MAVEN_TOKEN}"
+          args="${args} --mavenDeployArtifacts=false"
+          args="${args} --runParallelism=1"
+          args="${args} --javaVersionToJavaHomeEnv=17=${JAVA_HOME_17_X64},21=${JAVA_HOME_21_X64}"
+          args="${args} --summaryFile=${GITHUB_STEP_SUMMARY}"
+          args="${args} --gavsResultFile=/tmp/gavs.txt"
+          args="${args} --dependencyGraphFile=/tmp/graph.dot"
+
+          # opt-in: rewrite inter-module deps back to SNAPSHOT after a full release from main
+          args="${args} --switchInterModuleDepsToSnapshot"
+
+          repositories="https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-blue-green-state-monitor-quarkus]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-blue-green-state-monitor]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-context-propagation-quarkus]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-context-propagation]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-error-handling]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-junit-k8s-extension]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-microservice-dependencies]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-microservice-framework-extensions]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-microservice-framework]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-mongo-evolution]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-process-orchestrator]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-quarkus-extensions]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-rest-libraries]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-restclient]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-springboot-starter]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-utils]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=dbaas-client]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=maas-client-quarkus]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=maas-client-spring]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=maas-client]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=maas-declarative-client-commons]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=maas-declarative-client-quarkus]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=maas-declarative-client-spring]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-internal-boms]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-external-boms]
+          https://github.com/TaurMorchant/qubership-core-java-libs-test[branch=${BRANCH},pomFolder=core-maven-plugins]"
+
+          tmpfile=$(mktemp)
+          cat >"$tmpfile" <<EOF
+          $repositories
+          EOF
+          args="${args} --repositoriesFile=${tmpfile}"
+
+          args="${args} ${options}"
+          cmd="java -jar ${cli_jar} ${args}"
+          echo "running cmd: ${cmd}"
+          eval "${cmd}"
+
+      - name: "Upload logs artifact"
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: /tmp/logs/

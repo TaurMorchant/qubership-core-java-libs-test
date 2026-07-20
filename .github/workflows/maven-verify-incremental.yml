@@ -26,6 +26,13 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened ]
 
+# The reusable generic-maven-build.yaml declares packages: write / pull-requests: write.
+# A caller must grant at least those, otherwise the reusable call fails at startup.
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
 jobs:
   maven-verify-incremental:
     name: Maven verify incremental

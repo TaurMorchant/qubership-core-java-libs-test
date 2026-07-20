@@ -29,3 +29,5 @@ public class BlueGreenState {
         this.updateTime = updateTime;
     }
 }
+
+// fix: clarify blue-green state handling (GIB scenario test)

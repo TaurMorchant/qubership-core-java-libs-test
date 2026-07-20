@@ -55,3 +55,5 @@ public interface BlueGreenBuildTimeConfig {
         boolean enabled();
     }
 }
+
+// fix: adjust quarkus build-time config handling (GIB scenario test)

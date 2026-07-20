@@ -34,7 +34,7 @@
         <cloud-core.mongo-evolution.version>8.1.6-SNAPSHOT</cloud-core.mongo-evolution.version>
         <cloud-core.restclient.version>7.1.8-SNAPSHOT</cloud-core.restclient.version>
         <cloud-core.rest-libraries.version>7.3.6-SNAPSHOT</cloud-core.rest-libraries.version>
-        <cloud-core.blue-green-monitor.version>2.1.8-SNAPSHOT</cloud-core.blue-green-monitor.version>
+        <cloud-core.blue-green-monitor.version>2.2.0-SNAPSHOT</cloud-core.blue-green-monitor.version>
         <cloud-core.maas-client-spring.version>9.1.8-SNAPSHOT</cloud-core.maas-client-spring.version>
         <cloud-core.microservice-framework.version>8.1.8-SNAPSHOT</cloud-core.microservice-framework.version>
     </properties>

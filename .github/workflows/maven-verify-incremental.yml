@@ -20,10 +20,6 @@
 #   - permissions: at least packages: write and pull-requests: write, as the reusable workflow
 #     declares; less fails before any job starts.
 #
-# Limitations:
-#   - Fork PRs get no secrets: the registry is unreachable, unchanged modules unresolvable.
-#   - Sonar sees only the selected modules.
-#
 # See generic-maven-build.yaml for build features and secrets/vars.
 
 name: Maven verify

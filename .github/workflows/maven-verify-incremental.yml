@@ -1,4 +1,4 @@
-# Maven Verify Workflow
+# Maven Incremental Verify Workflow
 #
 # Runs `verify` on the modules a PR changes plus their downstream dependents, via
 # gitflow-incremental-builder (GIB). Unchanged upstream modules come from the package
@@ -22,7 +22,7 @@
 #
 # See generic-maven-build.yaml for build features and secrets/vars.
 
-name: Maven verify
+name: Maven incremental verify
 
 run-name: >
   Verify —
@@ -40,7 +40,7 @@ permissions:
 
 jobs:
   maven-verify:
-    name: Maven verify
+    name: Maven incremental verify
     uses: Netcracker/qubership-core-infra/.github/workflows/generic-maven-build.yaml@8668020927f2a84d8d096a359c719c3c3a403520 # v2.5.0
     with:
       maven-command: 'verify -T 1C -Dorg.slf4j.simpleLogger.showThreadId=true -Dgib.disable=false -Dgib.referenceBranch=refs/remotes/origin/${{ github.base_ref }} -Dgib.fetchReferenceBranch=true'

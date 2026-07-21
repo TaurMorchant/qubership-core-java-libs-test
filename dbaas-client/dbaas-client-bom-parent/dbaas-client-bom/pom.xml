@@ -130,7 +130,7 @@
             <dependency>
                 <artifactId>dbaas-client-test-bom</artifactId>
                 <groupId>${project.groupId}</groupId>
-                <version>${project.version}</version>
+                <version>9.1.8-SNAPSHOT</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

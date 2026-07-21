@@ -33,7 +33,7 @@
             <dependency>
                 <groupId>com.netcracker.cloud</groupId>
                 <artifactId>rest-third-party</artifactId>
-                <version>7.3.6-SNAPSHOT</version>
+                <version>${project.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

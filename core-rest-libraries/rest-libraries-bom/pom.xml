@@ -96,7 +96,7 @@
             <dependency>
                 <artifactId>rest-legacy-bom</artifactId>
                 <groupId>${project.groupId}</groupId>
-                <version>7.3.6-SNAPSHOT</version>
+                <version>${project.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

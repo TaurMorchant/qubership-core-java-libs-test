@@ -26,7 +26,7 @@
             <dependency>
                 <groupId>com.netcracker.cloud</groupId>
                 <artifactId>dbaas-client-bom-internal</artifactId>
-                <version>9.1.8-SNAPSHOT</version>
+                <version>${project.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

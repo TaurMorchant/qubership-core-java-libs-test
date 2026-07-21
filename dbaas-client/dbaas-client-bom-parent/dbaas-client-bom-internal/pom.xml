@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>dbaas-client-bom-internal</artifactId>
+    <packaging>pom</packaging>
     <!-- this bom contains all internal used versions - for usage inside of client modules, which includes
      all modules versions for inter-dependencies and third-party dependencies -->
 

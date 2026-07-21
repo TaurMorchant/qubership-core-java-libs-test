@@ -12,6 +12,7 @@
 
 
     <artifactId>dbaas-client-bom</artifactId>
+    <packaging>pom</packaging>
     <!-- This module should contain versions of all modules
     of dbaas-client for external dependencies to bound to -->
 

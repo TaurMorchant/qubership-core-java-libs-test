@@ -40,13 +40,6 @@
         <module>core-maven-plugins</module>
     </modules>
 
-    <properties>
-        <!-- gitflow-incremental-builder: disabled by default; enabled in CI via -Dgib.disable=false -->
-        <gib.disable>true</gib.disable>
-        <gib.buildDownstream>always</gib.buildDownstream>
-        <gib.buildUpstream>never</gib.buildUpstream>
-    </properties>
-
     <licenses>
         <license>
             <name>Apache-2.0</name>

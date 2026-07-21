@@ -3,7 +3,7 @@
 # Runs `verify` on the modules a PR changes plus their downstream dependents, via
 # gitflow-incremental-builder (GIB). Unchanged upstream modules come from the package
 # registry instead of being rebuilt. GIB diffs HEAD against the PR's base branch by merge
-# base; with no module changed it runs `validate` on the root only.
+# base. A PR touching no module (docs, .github) builds the root pom alone.
 #
 # Requirements:
 #   - Inter-module dependencies must reference the SNAPSHOT versions the modules currently
@@ -11,6 +11,10 @@
 #     links two modules only when groupId, artifactId and version all match. A dependency
 #     pinned to a release version forms no edge, so dependents of a changed module are never
 #     selected and silently go unverified.
+#   - BOM modules must declare <packaging>pom</packaging>. The reactor graph ignores
+#     dependencyManagement, so GIB resolves scope=import separately — but only for pom-packaged
+#     projects. A BOM left on the default jar packaging is not a BOM to GIB and its consumers
+#     drop out: a change to dbaas-client-bom-internal used to give a reactor of one module.
 #   - A mainline job must publish every module's SNAPSHOT to the registry regularly, and
 #     cleanup must retain those versions. Otherwise unchanged modules resolve to stale
 #     artifacts, or fail to resolve at all.
@@ -20,9 +24,14 @@
 #     cannot live in the root pom: GIB reads them from the session's top-level project, and the
 #     top-level modules do not inherit the root aggregator as their parent, so building a module
 #     directly would silently fall back to GIB's defaults.
-#   - fetch-depth: 0 and the base branch ref — provided by generic-maven-build.yaml.
+#   - fetch-depth: 0 — from generic-maven-build.yaml. The base branch itself is named and
+#     fetched by the gib.referenceBranch / gib.fetchReferenceBranch args below.
 #   - permissions: at least packages: write and pull-requests: write, as the reusable workflow
 #     declares; less fails before any job starts.
+#
+# Limitations:
+#   - Sonar sees only the selected modules, so every PR is measured on a different subset.
+#   - Fork PRs get no secrets: the registry is unreachable and unchanged modules cannot resolve.
 #
 # See generic-maven-build.yaml for build features and secrets/vars.
 

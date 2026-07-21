@@ -66,14 +66,14 @@
             <dependency>
                 <groupId>com.netcracker.cloud.quarkus</groupId>
                 <artifactId>cloud-core-context-propagation-bom-internal</artifactId>
-                <version>${project.version}</version>
+                <version>9.1.7-SNAPSHOT</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>com.netcracker.cloud.quarkus</groupId>
                 <artifactId>cloud-core-context-propagation-bom</artifactId>
-                <version>${project.version}</version>
+                <version>9.1.7-SNAPSHOT</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

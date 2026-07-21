@@ -1,24 +1,35 @@
-# Maven Verify Workflow — incremental (experimental)
+# Maven Incremental Verify Workflow
 #
-# Validates pull requests by running Maven verify on ONLY the modules changed
-# relative to the target branch (main) and their downstream dependents, using
-# gitflow-incremental-builder. Non-changed upstream internal modules are resolved
-# from the package registry instead of being built.
+# Runs `verify` on the modules a PR changes plus their downstream dependents, via
+# gitflow-incremental-builder (GIB). Unchanged upstream modules come from the package
+# registry instead of being rebuilt. GIB diffs HEAD against the PR's base branch by merge
+# base; with no module changed it runs `validate` on the root only.
 #
-# Runs alongside maven-verify.yml (which verifies the full reactor) for comparison.
+# Requirements:
+#   - Inter-module dependencies must reference the SNAPSHOT versions the modules currently
+#     have in the repo. GIB derives downstream dependents from Maven's reactor graph, which
+#     links two modules only when groupId, artifactId and version all match. A dependency
+#     pinned to a release version forms no edge, so dependents of a changed module are never
+#     selected and silently go unverified.
+#   - A mainline job must publish every module's SNAPSHOT to the registry regularly, and
+#     cleanup must retain those versions. Otherwise unchanged modules resolve to stale
+#     artifacts, or fail to resolve at all.
+#   - .mvn/extensions.xml registers GIB; .mvn/maven.config holds its configuration —
+#     gib.disable=true, gib.buildUpstream=never, gib.buildDownstream=always. CI re-enables GIB
+#     with -Dgib.disable=false, which wins: command-line args override maven.config. The settings
+#     cannot live in the root pom: GIB reads them from the session's top-level project, and the
+#     top-level modules do not inherit the root aggregator as their parent, so building a module
+#     directly would silently fall back to GIB's defaults.
+#   - fetch-depth: 0 and the base branch ref — provided by generic-maven-build.yaml.
+#   - permissions: at least packages: write and pull-requests: write, as the reusable workflow
+#     declares; less fails before any job starts.
 #
-# Triggers:
-#   - Pull request opened, synchronized, or reopened
-#
-# Note: for pull_request events GitHub uses the workflow definition from the base
-# branch (main), so this file must be on main before it runs on future PRs.
-#
-# See generic-maven-build.yaml for full documentation on build features and required secrets/vars.
+# See generic-maven-build.yaml for build features and secrets/vars.
 
-name: Maven verify incremental (experimental)
+name: Maven incremental verify
 
 run-name: >
-  Verify incremental —
+  Verify —
   PR (${{ github.head_ref }}) —
   [${{ github.event.pull_request.title }}]
 
@@ -26,21 +37,16 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened ]
 
-# The reusable generic-maven-build.yaml declares packages: write / pull-requests: write.
-# A caller must grant at least those, otherwise the reusable call fails at startup.
 permissions:
   contents: read
   packages: write
   pull-requests: write
 
 jobs:
-  maven-verify-incremental:
-    name: Maven verify incremental
+  maven-verify:
+    name: Maven incremental verify
     uses: Netcracker/qubership-core-infra/.github/workflows/generic-maven-build.yaml@8668020927f2a84d8d096a359c719c3c3a403520 # v2.5.0
     with:
-      # Compare against the PR's own base branch (main, support/*, release/*), never a
-      # hardcoded branch — otherwise a PR targeting a support branch is diffed against the
-      # wrong base and GIB selects the wrong module set.
       maven-command: 'verify -T 1C -Dorg.slf4j.simpleLogger.showThreadId=true -Dgib.disable=false -Dgib.referenceBranch=refs/remotes/origin/${{ github.base_ref }} -Dgib.fetchReferenceBranch=true'
       maven-username: 'TaurMorchant'
       sonar-project-key: ${{ vars.SONAR_PROJECT_KEY }}

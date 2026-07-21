@@ -14,8 +14,12 @@
 #   - A mainline job must publish every module's SNAPSHOT to the registry regularly, and
 #     cleanup must retain those versions. Otherwise unchanged modules resolve to stale
 #     artifacts, or fail to resolve at all.
-#   - .mvn/extensions.xml registers GIB; root pom sets gib.disable=true (local builds stay
-#     full), gib.buildUpstream=never, gib.buildDownstream=always.
+#   - .mvn/extensions.xml registers GIB; .mvn/maven.config holds its configuration —
+#     gib.disable=true, gib.buildUpstream=never, gib.buildDownstream=always. CI re-enables GIB
+#     with -Dgib.disable=false, which wins: command-line args override maven.config. The settings
+#     cannot live in the root pom: GIB reads them from the session's top-level project, and the
+#     top-level modules do not inherit the root aggregator as their parent, so building a module
+#     directly would silently fall back to GIB's defaults.
 #   - fetch-depth: 0 and the base branch ref — provided by generic-maven-build.yaml.
 #   - permissions: at least packages: write and pull-requests: write, as the reusable workflow
 #     declares; less fails before any job starts.

@@ -15,6 +15,7 @@
      all modules versions for inter-dependencies and third-party dependencies -->
 
     <properties>
+        <!-- GIB probe (round 3, after packaging fix) -->
         <powermock.version>2.0.9</powermock.version>
         <arangodb.driver.version>7.26.0</arangodb.driver.version>
         <arangodb.spring.data.version>5.0.0</arangodb.spring.data.version>

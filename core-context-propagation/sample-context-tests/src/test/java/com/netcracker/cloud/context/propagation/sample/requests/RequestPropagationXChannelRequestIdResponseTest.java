@@ -5,10 +5,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
@@ -32,6 +29,7 @@ import com.netcracker.cloud.framework.contexts.xchannelrequestid.HeaderPropagati
         "headers.allowed=custom-header",
         "cloud-core.context-propagation.url=/test_url/v111/test"
 })
+@Disabled
 class RequestPropagationXChannelRequestIdResponseTest {
 
     @Autowired

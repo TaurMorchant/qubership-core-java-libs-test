@@ -47,7 +47,7 @@ jobs:
     name: Maven incremental verify
     uses: Netcracker/qubership-core-infra/.github/workflows/generic-maven-build.yaml@8668020927f2a84d8d096a359c719c3c3a403520 # v2.5.0
     with:
-      maven-command: 'verify -T 1C -Dorg.slf4j.simpleLogger.showThreadId=true -Dgib.disable=false -Dgib.referenceBranch=refs/remotes/origin/${{ github.base_ref }} -Dgib.fetchReferenceBranch=true -Dgib.forceBuildModules=qubership-core-java-libs'
+      maven-command: 'verify -T 1C -Dorg.slf4j.simpleLogger.showThreadId=true -Dgib.disable=false -Dgib.referenceBranch=refs/remotes/origin/${{ github.base_ref }} -Dgib.fetchReferenceBranch=true -Dgib.forceBuildModules=qubership-core-java-libs,maas-declarative-kafka-client-spring-bom'
       maven-username: 'TaurMorchant'
       sonar-project-key: ${{ vars.SONAR_PROJECT_KEY }}
     secrets:

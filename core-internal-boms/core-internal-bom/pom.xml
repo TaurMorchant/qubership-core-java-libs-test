@@ -35,6 +35,7 @@
         <jandex.version>3.5.3</jandex.version>
 
         <!-- Jackson -->
+        <!-- GIB probe (round 3, after packaging fix) -->
         <jackson-bom.version>2.21.4</jackson-bom.version>
 
         <!-- Annotations -->
